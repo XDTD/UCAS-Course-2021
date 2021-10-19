@@ -53,11 +53,12 @@ long rd_init(long mem_start, int length)
 {
 	int	i;
 	char	*cp;
-
-	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;
+	// 7个用三个
+	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;  // 层层调用，第二项就是虚拟盘
 	rd_start = (char *) mem_start;
 	rd_length = length;
 	cp = rd_start;
+	// 把这个盘清零
 	for (i=0; i < length; i++)
 		*cp++ = '\0';
 	return(length);
@@ -73,7 +74,7 @@ void rd_load(void)
 	struct buffer_head *bh;
 	struct super_block	s;
 	int		block = 256;	/* Start at block 256 */
-	int		i = 1;
+	int		i = 1; //device memory
 	int		nblocks;
 	char		*cp;		/* Move pointer */
 	

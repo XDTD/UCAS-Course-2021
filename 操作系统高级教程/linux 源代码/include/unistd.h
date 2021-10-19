@@ -134,10 +134,10 @@
 type name(void) \
 { \
 long __res; \
-__asm__ volatile ("int $0x80" \
+__asm__ volatile ("int $0x80" \  //从这进去system_call,从３特权到０特权
 	: "=a" (__res) \
 	: "0" (__NR_##name)); \
-if (__res >= 0) \
+if (__res >= 0) \  // ljmp切换的位置，返回值是eas,进程0创建进程1的时候写死为0
 	return (type) __res; \
 errno = -__res; \
 return -1; \

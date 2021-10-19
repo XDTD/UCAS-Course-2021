@@ -620,6 +620,7 @@ void con_init(void)
 	char *display_desc = "????";
 	char *display_ptr;
 
+	// 用机器数据
 	video_num_columns = ORIG_VIDEO_COLS;
 	video_size_row = video_num_columns * 2;
 	video_num_lines = ORIG_VIDEO_LINES;

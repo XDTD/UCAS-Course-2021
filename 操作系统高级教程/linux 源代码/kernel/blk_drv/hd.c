@@ -134,7 +134,7 @@ int sys_setup(void * BIOS)
 		hd[i*5].nr_sects = 0;
 	}
 	for (drive=0 ; drive<NR_HD ; drive++) {
-		if (!(bh = bread(0x300 + drive*5,0))) {
+		if (!(bh = bread(0x300 + drive*5,0))) {  // b是block，块的意思
 			printk("Unable to read partition table of drive %d\n\r",
 				drive);
 			panic("");

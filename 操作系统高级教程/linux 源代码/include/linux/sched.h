@@ -50,17 +50,17 @@ struct i387_struct {
 
 struct tss_struct {
 	long	back_link;	/* 16 high bits zero */
-	long	esp0;
+	long	esp0;		// 内核的
 	long	ss0;		/* 16 high bits zero */
 	long	esp1;
 	long	ss1;		/* 16 high bits zero */
 	long	esp2;
 	long	ss2;		/* 16 high bits zero */
 	long	cr3;
-	long	eip;
+	long	eip;		
 	long	eflags;
 	long	eax,ecx,edx,ebx;
-	long	esp;
+	long	esp;	// 用户的
 	long	ebp;
 	long	esi;
 	long	edi;
@@ -75,6 +75,7 @@ struct tss_struct {
 	struct i387_struct i387;
 };
 
+// 进程最核心的地方
 struct task_struct {
 /* these are hardcoded - don't touch */
 	long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
@@ -85,7 +86,7 @@ struct task_struct {
 	long blocked;	/* bitmap of masked signals */
 /* various fields */
 	int exit_code;
-	unsigned long start_code,end_code,end_data,brk,start_stack;
+	unsigned long start_code,end_code,end_data,brk,start_stack; // 高版本对应VMA,虚拟内存区域
 	long pid,father,pgrp,session,leader;
 	unsigned short uid,euid,suid;
 	unsigned short gid,egid,sgid;
@@ -99,17 +100,18 @@ struct task_struct {
 	struct m_inode * root;
 	struct m_inode * executable;
 	unsigned long close_on_exec;
-	struct file * filp[NR_OPEN];
+	struct file * filp[NR_OPEN]; // 一个进程最多打开多少个文件，这个OS限制为20，新的不限制，fopen返回的句柄就是这个的下标
 /* ldt for this task 0 - zero 1 - cs 2 - ds&ss */
 	struct desc_struct ldt[3];
-/* tss for this task */
-	struct tss_struct tss;
+/* tss for this task */ 
+	struct tss_struct tss;   // eflag
 };
 
 /*
  *  INIT_TASK is used to set up the first task table, touch at
  * your own risk!. Base=0, limit=0x9ffff (=640kB)
  */
+// 把进程0的eflags全部设置为0
 #define INIT_TASK \
 /* state etc */	{ 0,15,15, \
 /* signals */	0,{{},},0, \
@@ -121,12 +123,13 @@ struct task_struct {
 /* fs info */	-1,0022,NULL,NULL,NULL,0, \
 /* filp */	{NULL,}, \
 	{ \
-		{0,0}, \
+		{0,0}, \   // 这里就是实际上ldt的位置
+// 进程0的位置？
 /* ldt */	{0x9f,0xc0fa00}, \
 		{0x9f,0xc0f200}, \
 	}, \
 /*tss*/	{0,PAGE_SIZE+(long)&init_task,0x10,0,0,0,0,(long)&pg_dir,\
-	 0,0,0,0,0,0,0,0, \
+	 0,0,0,0,0,0,0,0, \  
 	 0,0,0x17,0x17,0x17,0x17,0x17,0x17, \
 	 _LDT(0),0x80000000, \
 		{} \
@@ -173,8 +176,9 @@ struct {long a,b;} __tmp; \
 __asm__("cmpl %%ecx,_current\n\t" \
 	"je 1f\n\t" \
 	"movw %%dx,%1\n\t" \
-	"xchgl %%ecx,_current\n\t" \
+	"xchgl %%ecx,_current\n\t" \  // 如果两个一样直接不走了
 	"ljmp %0\n\t" \
+	// 后续没执行，所以还没返回
 	"cmpl %%ecx,_last_task_used_math\n\t" \
 	"jne 1f\n\t" \
 	"clts\n" \

@@ -20,6 +20,7 @@
  * paging, 'bh' is NULL, and 'waiting' is used to wait for
  * read/write completion.
  */
+// 请求项，硬盘-缓冲区之间的数据结构
 struct request {
 	int dev;		/* -1 if no request */
 	int cmd;		/* READ or WRITE */
@@ -29,7 +30,7 @@ struct request {
 	char * buffer;
 	struct task_struct * waiting;
 	struct buffer_head * bh;
-	struct request * next;
+	struct request * next;   
 };
 
 /*
@@ -42,13 +43,14 @@ struct request {
 ((s1)->dev < (s2)->dev || ((s1)->dev == (s2)->dev && \
 (s1)->sector < (s2)->sector)))
 
+// 包含指向函数的指针和请求项
 struct blk_dev_struct {
-	void (*request_fn)(void);
+	void (*request_fn)(void);  // 指向函数的指针
 	struct request * current_request;
 };
 
 extern struct blk_dev_struct blk_dev[NR_BLK_DEV];
-extern struct request request[NR_REQUEST];
+extern struct request request[NR_REQUEST];  // // 请求项，硬盘-缓冲区之间的数据结构
 extern struct task_struct * wait_for_request;
 
 #ifdef MAJOR_NR

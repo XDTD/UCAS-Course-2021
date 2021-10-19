@@ -29,6 +29,7 @@ struct task_struct * wait_for_request = NULL;
  *	do_request-address
  *	next-request
  */
+// 和盘打交道就需要和这个打交道
 struct blk_dev_struct blk_dev[NR_BLK_DEV] = {
 	{ NULL, NULL },		/* no_dev */
 	{ NULL, NULL },		/* dev mem */
@@ -157,9 +158,9 @@ void ll_rw_block(int rw, struct buffer_head * bh)
 void blk_dev_init(void)
 {
 	int i;
-
+	// 数组组成的链表
 	for (i=0 ; i<NR_REQUEST ; i++) {
-		request[i].dev = -1;
-		request[i].next = NULL;
+		request[i].dev = -1;  // 初始化-1，没挂上设备
+		request[i].next = NULL;  // 还没挂上
 	}
 }

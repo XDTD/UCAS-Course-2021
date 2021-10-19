@@ -13,16 +13,16 @@
  */
 .text
 .globl _idt,_gdt,_pg_dir,_tmp_floppy_area
-_pg_dir:
+_pg_dir: // 分页，页头
 startup_32:
-	movl $0x10,%eax
-	mov %ax,%ds
+	movl $0x10,%eax  // 顶头
+	mov %ax,%ds // 段对其
 	mov %ax,%es
 	mov %ax,%fs
 	mov %ax,%gs
-	lss _stack_start,%esp
-	call setup_idt
-	call setup_gdt
+	lss _stack_start,%esp  // 设定栈顶指针esp
+	call setup_idt  //设置idt
+	call setup_gdt //设置gdt
 	movl $0x10,%eax		# reload all the segment registers
 	mov %ax,%ds		# after changing gdt. CS was already
 	mov %ax,%es		# reloaded in 'setup_gdt'
@@ -30,16 +30,17 @@ startup_32:
 	mov %ax,%gs
 	lss _stack_start,%esp
 	xorl %eax,%eax
-1:	incl %eax		# check that A20 really IS enabled
+1:	incl %eax		# check that A20 really IS enabled,验证A20是否打开了
 	movl %eax,0x000000	# loop forever if it isn't
 	cmpl %eax,0x100000
-	je 1b
+	je 1b // 
 /*
  * NOTE! 486 should set bit 16, to check for write-protect in supervisor
  * mode. Then it would be unnecessary with the "verify_area()"-calls.
  * 486 users probably want to set the NE (#5) bit also, so as to use
  * int 16 for math errors.
  */
+	// 数学协处理器
 	movl %cr0,%eax		# check math chip
 	andl $0x80000011,%eax	# Save PG,PE,ET
 /* "orl $0x10020,%eax" here for 486 might be good */
@@ -76,10 +77,10 @@ check_x87:
  *  written by the page tables.
  */
 setup_idt:
-	lea ignore_int,%edx
-	movl $0x00080000,%eax
-	movw %dx,%ax		/* selector = 0x0008 = cs */
-	movw $0x8E00,%dx	/* interrupt gate - dpl=0, present */
+	lea ignore_int,%edx  // ignore_int是中断程序的返回地址，先给edx
+	movl $0x00080000,%eax  // 
+	movw %dx,%ax		/* selector = 0x0008 = cs，内核代码段 */ // 把edx的低字给eax
+	movw $0x8E00,%dx	/* interrupt gate - dpl=0, present */ // 把8E00给edx的低字，E是1110对应选择符上面一项
 
 	lea _idt,%edi
 	mov $256,%ecx
@@ -88,9 +89,9 @@ rp_sidt:
 	movl %edx,4(%edi)
 	addl $8,%edi
 	dec %ecx
-	jne rp_sidt
-	lidt idt_descr
-	ret
+	jne rp_sidt // 循环比较，刷了2k，256个
+	lidt idt_descr // 中断描述符的基址
+	ret //普通的子程序返回
 
 /*
  *  setup_gdt
@@ -111,6 +112,8 @@ setup_gdt:
  * using 4 of them to span 16 Mb of physical memory. People with
  * more than 16MB will have to expand this.
  */
+ // 分页，下面一部分是跟着头的四页
+ // 0X000~0X4FFF,页目录以及4个页表
 .org 0x1000
 pg0:
 
@@ -132,12 +135,13 @@ pg3:
 _tmp_floppy_area:
 	.fill 1024,1,0
 
+// 利用return去调用函数，手动压栈然后jump,假装有调用过main函数
 after_page_tables:
 	pushl $0		# These are the parameters to main :-)
 	pushl $0
 	pushl $0
 	pushl $L6		# return address for main, if it decides to.
-	pushl $_main
+	pushl $_main	// C语言中的main
 	jmp setup_paging
 L6:
 	jmp L6			# main should never return here, but
@@ -147,7 +151,8 @@ L6:
 int_msg:
 	.asciz "Unknown interrupt\n\r"
 .align 2
-ignore_int:
+ignore_int:  
+	// 栈保护
 	pushl %eax
 	pushl %ecx
 	pushl %edx
@@ -159,15 +164,15 @@ ignore_int:
 	mov %ax,%es
 	mov %ax,%fs
 	pushl $int_msg
-	call _printk
-	popl %eax
+	call _printk // 除去下环线就是C语言的函数，因为（printf）file system还没有
+	popl %eax   // 输出 "Unknown interrupt\n\r"
 	pop %fs
 	pop %es
 	pop %ds
 	popl %edx
 	popl %ecx
 	popl %eax
-	iret
+	iret //中断返回
 
 
 /*
@@ -199,23 +204,24 @@ setup_paging:
 	movl $1024*5,%ecx		/* 5 pages - pg_dir+4 page tables */
 	xorl %eax,%eax
 	xorl %edi,%edi			/* pg_dir is at 0x000 */
-	cld;rep;stosl
+	cld;rep;stosl      //管方向，从低地址向高地址亦或是相反
+	// 滚页目录表项，7是0111
 	movl $pg0+7,_pg_dir		/* set present bit/user r/w */
 	movl $pg1+7,_pg_dir+4		/*  --------- " " --------- */
 	movl $pg2+7,_pg_dir+8		/*  --------- " " --------- */
 	movl $pg3+7,_pg_dir+12		/*  --------- " " --------- */
 	movl $pg3+4092,%edi
 	movl $0xfff007,%eax		/*  16Mb - 4096 + 7 (r/w user,p) */
-	std
+	std				//管方向，从低地址向高地址亦或是相反
 1:	stosl			/* fill pages backwards - more efficient :-) */
 	subl $0x1000,%eax
 	jge 1b
 	xorl %eax,%eax		/* pg_dir is at 0x0000 */
-	movl %eax,%cr3		/* cr3 - page directory start */
-	movl %cr0,%eax
+	movl %eax,%cr3		/* cr3 - page directory start */ //记录一个页目录表的起始空间,实际是切换线性空间，指向物理地址
+	movl %cr0,%eax      // 打开分页，0X1000最高位
 	orl $0x80000000,%eax
 	movl %eax,%cr0		/* set paging (PG) bit */
-	ret			/* this also flushes prefetch-queue */
+	ret			/* this also flushes prefetch-queue */ // return到main函数
 
 .align 2
 .word 0
@@ -229,7 +235,7 @@ gdt_descr:
 	.long _gdt		# magic number, but it works for me :^)
 
 	.align 3
-_idt:	.fill 256,8,0		# idt is uninitialized
+_idt:	.fill 256,8,0		# idt is uninitialized，256个，8字节
 
 _gdt:	.quad 0x0000000000000000	/* NULL descriptor */
 	.quad 0x00c09a0000000fff	/* 16Mb */

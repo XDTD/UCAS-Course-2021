@@ -91,12 +91,13 @@ _system_call:
 	mov %dx,%es
 	movl $0x17,%edx		# fs points to local data space
 	mov %dx,%fs
-	call _sys_call_table(,%eax,4)
+	call _sys_call_table(,%eax,4) // 查询系统调用函数表(sys_call_table,偏移2对应sys_fork) 
+	// 返回值lastpid(当前是1，进程1)
 	pushl %eax
-	movl _current,%eax
-	cmpl $0,state(%eax)		# state
-	jne reschedule
-	cmpl $0,counter(%eax)		# counter
+	movl _current,%eax // current是指向当前进程task_struct的指针，目前是进程0
+	cmpl $0,state(%eax)		# state // 判断进程0是不是就绪态
+	jne reschedule // 如果不是就调度
+	cmpl $0,counter(%eax)		# counter  // 根据时间片调度，如果是0就应该调度
 	je reschedule
 ret_from_sys_call:
 	movl _current,%eax		# task[0] cannot have signals
@@ -125,7 +126,7 @@ ret_from_sys_call:
 	pop %fs
 	pop %es
 	pop %ds
-	iret
+	iret // 把5个剩下的给cpu并且清楚栈,返回到_syscall0的int x80
 
 .align 2
 _coprocessor_error:
@@ -210,12 +211,13 @@ _sys_fork:
 	testl %eax,%eax
 	js 1f
 	push %gs
+	// 清除栈
 	pushl %esi
 	pushl %edi
 	pushl %ebp
 	pushl %eax
 	call _copy_process
-	addl $20,%esp
+	addl $20,%esp 
 1:	ret
 
 _hd_interrupt:

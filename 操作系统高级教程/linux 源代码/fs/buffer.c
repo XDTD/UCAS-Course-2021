@@ -167,10 +167,10 @@ static struct buffer_head * find_buffer(int dev, int block)
 {		
 	struct buffer_head * tmp;
 
-	for (tmp = hash(dev,block) ; tmp != NULL ; tmp = tmp->b_next)
+	for (tmp = hash(dev,block) ; tmp != NULL ; tmp = tmp->b_next) //沿着叉子走
 		if (tmp->b_dev==dev && tmp->b_blocknr==block)
 			return tmp;
-	return NULL;
+	return NULL; // 第一次必返回NULL
 }
 
 /*
@@ -185,7 +185,7 @@ struct buffer_head * get_hash_table(int dev, int block)
 	struct buffer_head * bh;
 
 	for (;;) {
-		if (!(bh=find_buffer(dev,block)))
+		if (!(bh=find_buffer(dev,block))) //第一次返回的是空，缓冲区没东西，直接返回
 			return NULL;
 		bh->b_count++;
 		wait_on_buffer(bh);
@@ -210,6 +210,7 @@ struct buffer_head * getblk(int dev,int block)
 repeat:
 	if (bh = get_hash_table(dev,block))
 		return bh;
+	// 第一次是空的开始创建
 	tmp = free_list;
 	do {
 		if (tmp->b_count)

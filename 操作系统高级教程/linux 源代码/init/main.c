@@ -56,7 +56,7 @@ extern long startup_time;
  * This is set up by the setup-routine at boot-time
  */
 #define EXT_MEM_K (*(unsigned short *)0x90002)
-#define DRIVE_INFO (*(struct drive_info *)0x90080)
+#define DRIVE_INFO (*(struct drive_info *)0x90080) //32位
 #define ORIG_ROOT_DEV (*(unsigned short *)0x901FC)
 
 /*
@@ -107,9 +107,10 @@ void main(void)		/* This really IS void, no error here. */
  * Interrupts are still disabled. Do necessary setups, then
  * enable them
  */
- 	ROOT_DEV = ORIG_ROOT_DEV;
- 	drive_info = DRIVE_INFO;
-	memory_end = (1<<20) + (EXT_MEM_K<<10);
+ 	ROOT_DEV = ORIG_ROOT_DEV;  //根设备
+ 	drive_info = DRIVE_INFO;  
+	 // 内存管理，根据物理内存条的大小设置物理末端，小于16M
+	memory_end = (1<<20) + (EXT_MEM_K<<10);  // bios读的数据，1M的基本内存+整个内存条的内存
 	memory_end &= 0xfffff000;
 	if (memory_end > 16*1024*1024)
 		memory_end = 16*1024*1024;
@@ -119,22 +120,22 @@ void main(void)		/* This really IS void, no error here. */
 		buffer_memory_end = 2*1024*1024;
 	else
 		buffer_memory_end = 1*1024*1024;
-	main_memory_start = buffer_memory_end;
-#ifdef RAMDISK
+	main_memory_start = buffer_memory_end;  // buffer在主存开始的地方，也是main函数的开始
+#ifdef RAMDISK // 用内存虚拟盘
 	main_memory_start += rd_init(main_memory_start, RAMDISK*1024);
 #endif
-	mem_init(main_memory_start,memory_end);
-	trap_init();
-	blk_dev_init();
-	chr_dev_init();
-	tty_init();
-	time_init();
-	sched_init();
+	mem_init(main_memory_start,memory_end); // 看这个物理页是否有人用，使用记录，开辟和释放内存
+	trap_init();  // idt
+	blk_dev_init();  // 块设备初始化，请求项
+	chr_dev_init(); // 空的
+	tty_init();   // 串口、显示器键盘
+	time_init();  // 设置时钟
+	sched_init();  // 进程相关
 	buffer_init(buffer_memory_end);
-	hd_init();
-	floppy_init();
-	sti();
-	move_to_user_mode();
+	hd_init();	// 初始化硬盘
+	floppy_init(); // 初始化软盘
+	sti(); // 开中断
+	move_to_user_mode(); // 转到用户态
 	if (!fork()) {		/* we count on this going ok */
 		init();
 	}
@@ -145,7 +146,7 @@ void main(void)		/* This really IS void, no error here. */
  * can run). For task0 'pause()' just means we go check if some other
  * task can run, and if not we return here.
  */
-	for(;;) pause();
+	for(;;) pause();　
 }
 
 static int printf(const char *fmt, ...)

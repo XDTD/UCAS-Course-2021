@@ -41,15 +41,17 @@ int copy_mem(int nr,struct task_struct * p)
 	unsigned long old_data_base,new_data_base,data_limit;
 	unsigned long old_code_base,new_code_base,code_limit;
 
-	code_limit=get_limit(0x0f);
-	data_limit=get_limit(0x17);
-	old_code_base = get_base(current->ldt[1]);
+	code_limit=get_limit(0x0f);  // 应用程序的代码段
+	data_limit=get_limit(0x17); // 应用程序的数据段
+	// 找代码段和数据段的基址
+	old_code_base = get_base(current->ldt[1]);  
 	old_data_base = get_base(current->ldt[2]);
 	if (old_data_base != old_code_base)
 		panic("We don't support separate I&D");
 	if (data_limit < code_limit)
 		panic("Bad data_limit");
 	new_data_base = new_code_base = nr * 0x4000000;
+	// 代码段的基址设置
 	p->start_code = new_code_base;
 	set_base(p->ldt[1],new_code_base);
 	set_base(p->ldt[2],new_data_base);
@@ -74,12 +76,12 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	int i;
 	struct file *f;
 
-	p = (struct task_struct *) get_free_page();
+	p = (struct task_struct *) get_free_page(); // 获取空闲页
 	if (!p)
 		return -EAGAIN;
 	task[nr] = p;
 	*p = *current;	/* NOTE! this doesn't copy the supervisor stack */
-	p->state = TASK_UNINTERRUPTIBLE;
+	p->state = TASK_UNINTERRUPTIBLE;  // 将进程l 的状态设置为不可中断等待状态
 	p->pid = last_pid;
 	p->father = current->pid;
 	p->counter = p->priority;
@@ -92,9 +94,9 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	p->tss.back_link = 0;
 	p->tss.esp0 = PAGE_SIZE + (long) p;
 	p->tss.ss0 = 0x10;
-	p->tss.eip = eip;
+	p->tss.eip = eip; // 将来进程切换过来后第一个跑的地址,
 	p->tss.eflags = eflags;
-	p->tss.eax = 0;
+	p->tss.eax = 0;  // 写死了是0，别有用心，决定了子进程的eax
 	p->tss.ecx = ecx;
 	p->tss.edx = edx;
 	p->tss.ebx = ebx;

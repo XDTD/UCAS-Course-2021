@@ -155,26 +155,30 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 	unsigned long * from_dir, * to_dir;
 	unsigned long nr;
 
+	// 0x3fffff,即4M，在4M的空间上任何一位不为1就为真，出错
 	if ((from&0x3fffff) || (to&0x3fffff))
 		panic("copy_page_tables called with wrong alignment");
-	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
-	to_dir = (unsigned long *) ((to>>20) & 0xffc);
+	// 父进程的基址右移20位(M以上的数字) & 0xffc，变成4M的倍数(0到64)
+	// 子进程的页目录表项指针
+	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */ // 变成4M的倍数
+	to_dir = (unsigned long *) ((to>>20) & 0xffc);  // 进程0的段线长 640
 	size = ((unsigned) (size+0x3fffff)) >> 22;
-	for( ; size-->0 ; from_dir++,to_dir++) {
-		if (1 & *to_dir)
-			panic("copy_page_tables: already exist");
-		if (!(1 & *from_dir))
+	for( ; size-->0 ; from_dir++,to_dir++) { // 页目录表项
+		if (1 & *to_dir) //子进程对应页目录表项的存在位，是否缺页，第一位是1已经有页表了
+			panic("copy_page_tables: already exist"); // 缺页中断
+		if (!(1 & *from_dir)) // 父进程对应页目录表项的存在位，如果没建立过页表就continue
 			continue;
+		// 20位就能寻找到4k的级别，后12不用管(各种标志位)；下面得到页表的地址位置
 		from_page_table = (unsigned long *) (0xfffff000 & *from_dir);
 		if (!(to_page_table = (unsigned long *) get_free_page()))
 			return -1;	/* Out of memory, see freeing */
 		*to_dir = ((unsigned long) to_page_table) | 7;
-		nr = (from==0)?0xA0:1024;
-		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
+		nr = (from==0)?0xA0:1024; // A0是160，页表项一共1024
+		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) { // 页表项
 			this_page = *from_page_table;
 			if (!(1 & this_page))
 				continue;
-			this_page &= ~2;
+			this_page &= ~2;   // 第二位置零，变成只读，除了读写权限，其他和父进程完全相同
 			*to_page_table = this_page;
 			if (this_page > LOW_MEM) {
 				*from_page_table = this_page;
@@ -184,7 +188,8 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 			}
 		}
 	}
-	invalidate();
+	// 刷新tlb(高速缓存)
+	invalidate();  
 	return 0;
 }
 
@@ -396,18 +401,19 @@ void do_no_page(unsigned long error_code,unsigned long address)
 	oom();
 }
 
+// 内存使用记录
 void mem_init(long start_mem, long end_mem)
 {
 	int i;
 
 	HIGH_MEMORY = end_mem;
 	for (i=0 ; i<PAGING_PAGES ; i++)
-		mem_map[i] = USED;
+		mem_map[i] = USED;  // 假定有100人用，使用次数全部设置100
 	i = MAP_NR(start_mem);
 	end_mem -= start_mem;
-	end_mem >>= 12;
-	while (end_mem-->0)
-		mem_map[i++]=0;
+	end_mem >>= 12;      // 12即4k，一页，把页数
+	while (end_mem-->0)       
+		mem_map[i++]=0;  // 缓冲区的内存，之前没有参加分配，现在刷成0
 }
 
 void calc_mem(void)

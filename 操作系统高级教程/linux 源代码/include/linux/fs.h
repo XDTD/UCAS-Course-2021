@@ -67,13 +67,15 @@ typedef char buffer_block[BLOCK_SIZE];
 
 struct buffer_head {
 	char * b_data;			/* pointer to data block (1024 bytes) */
-	unsigned long b_blocknr;	/* block number */
-	unsigned short b_dev;		/* device (0 = free) */
-	unsigned char b_uptodate;
-	unsigned char b_dirt;		/* 0-clean,1-dirty */
-	unsigned char b_count;		/* users using this block */
-	unsigned char b_lock;		/* 0 - ok, 1 -locked */
-	struct task_struct * b_wait;
+	unsigned long b_blocknr;	/* block number */// 块号
+	unsigned short b_dev;		/* device (0 = free) *///设备号
+	unsigned char b_uptodate;	// 后面再讲
+	unsigned char b_dirt;		/* 0-clean,1-dirty *///提醒系统缓冲区写过，数据同步到硬盘上
+	unsigned char b_count;		/* users using this block */ //引用计数，谁用这个块给谁加1
+	unsigned char b_lock;		/* 0 - ok, 1 -locked */ // 锁
+	struct task_struct * b_wait; // 后面再讲
+
+	// 环状链表和哈希表
 	struct buffer_head * b_prev;
 	struct buffer_head * b_next;
 	struct buffer_head * b_prev_free;
