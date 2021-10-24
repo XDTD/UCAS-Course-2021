@@ -1,0 +1,10 @@
+source 'https://rubygems.org'
+ruby '2.7.4'
+
+gem 'sinatra', '>= 2.0.1'
+gem 'wdm', '>= 0.1.0' if Gem.win_platform?  #命令行提示加的
+
+group :development do
+    gem 'rerun'
+  end
+  
