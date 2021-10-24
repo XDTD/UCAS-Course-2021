@@ -35,9 +35,10 @@ int NR_BUFFERS = 0;
 
 static inline void wait_on_buffer(struct buffer_head * bh)
 {
-	cli();
-	while (bh->b_lock)
-		sleep_on(&bh->b_wait);
+	cli();  // 关中断
+	//  为什么是while不是if
+	while (bh->b_lock)  
+		sleep_on(&bh->b_wait);  // 转给别的进程，硬盘写入缓存后不需要CPU，自己有DMI/CPU
 	sti();
 }
 
@@ -202,37 +203,40 @@ struct buffer_head * get_hash_table(int dev, int block)
  *
  * The algoritm is changed: hopefully better, and an elusive bug removed.
  */
+// dirt比lock更不划算
 #define BADNESS(bh) (((bh)->b_dirt<<1)+(bh)->b_lock)
 struct buffer_head * getblk(int dev,int block)
 {
 	struct buffer_head * tmp, * bh;
 
 repeat:
-	if (bh = get_hash_table(dev,block))
+	if (bh = get_hash_table(dev,block)) // 第一次bh = 0
 		return bh;
 	// 第一次是空的开始创建
 	tmp = free_list;
 	do {
-		if (tmp->b_count)
+		if (tmp->b_count)  
 			continue;
-		if (!bh || BADNESS(tmp)<BADNESS(bh)) {
+		// b_count为0走到这一步，该buffer_head可替换
+		
+		if (!bh || BADNESS(tmp)<BADNESS(bh)) {  // 这里bh = 1
 			bh = tmp;
-			if (!BADNESS(tmp))
+			if (!BADNESS(tmp)) // 合适了直接就选定了
 				break;
 		}
 /* and repeat until we find something good */
-	} while ((tmp = tmp->b_next_free) != free_list);
-	if (!bh) {
+	} while ((tmp = tmp->b_next_free) != free_list); // 遍历双向环链表
+	if (!bh) { // 第一次这里bh有值了,
 		sleep_on(&buffer_wait);
 		goto repeat;
 	}
-	wait_on_buffer(bh);
+	wait_on_buffer(bh); // 可能b_count为0，lock不为0，那这里就等
 	if (bh->b_count)
 		goto repeat;
 	while (bh->b_dirt) {
-		sync_dev(bh->b_dev);
+		sync_dev(bh->b_dev);  // 同步
 		wait_on_buffer(bh);
-		if (bh->b_count)
+		if (bh->b_count)   // 因为发生过schedule,所以需要重新判断b_count
 			goto repeat;
 	}
 /* NOTE!! While we slept waiting for this block, somebody else might */
@@ -271,9 +275,10 @@ struct buffer_head * bread(int dev,int block)
 
 	if (!(bh=getblk(dev,block)))
 		panic("bread: getblk returned NULL\n");
-	if (bh->b_uptodate)
+	if (bh->b_uptodate) //0，接着往下走
 		return bh;
-	ll_rw_block(READ,bh);
+	// 造出了一个新的引导块，现在需要读写引导块
+	ll_rw_block(READ,bh); // "ll"是底层读写？
 	wait_on_buffer(bh);
 	if (bh->b_uptodate)
 		return bh;

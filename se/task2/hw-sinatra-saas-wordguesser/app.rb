@@ -24,18 +24,8 @@ class WordGuesserApp < Sinatra::Base
   
   get '/new' do
     erb :new
-    # puts "get new"
   end
 
-  # 点击New之后跳转的地方
-  post '/new' do
-    puts "post new"
-    puts "#{ @game }"
-    @game = WordGuesserGame.new('glorp')
-    redirect '/create'
-  end
-
-  
   
   post '/create' do
     # NOTE: don't change next line - it's needed by autograder!
@@ -46,15 +36,24 @@ class WordGuesserApp < Sinatra::Base
     redirect '/show'
   end
   
+
   # Use existing methods in WordGuesserGame to process a guess.
   # If a guess is repeated, set flash[:message] to "You have already used that letter."
   # If a guess is invalid, set flash[:message] to "Invalid guess."
   post '/guess' do
     letter = params[:guess].to_s[0]
     ### YOUR CODE HERE ###
+    if letter == nil or !letter.match?(/[[:alpha:]]/)  # 无效的猜测
+      flash[:message] = "Invalid guess."
+    elsif @game.guesses.include?(letter) or @game.wrong_guesses.include?(letter) # 重复猜测
+      flash[:message] = "You have already used that letter."
+    else 
+      @game.guess(letter)
+    end
     redirect '/show'
   end
   
+
   # Everytime a guess is made, we should eventually end up at this route.
   # Use existing methods in WordGuesserGame to check if player has
   # won, lost, or neither, and take the appropriate action.
@@ -62,17 +61,31 @@ class WordGuesserApp < Sinatra::Base
   # wrong_guesses and word_with_guesses from @game.
   get '/show' do
     ### YOUR CODE HERE ###
-    erb :show # You may change/remove this line
+    if @game.check_win_or_lose == :win
+      redirect '/win'
+    elsif @game.check_win_or_lose == :lose
+      redirect '/lose'
+    else
+      erb :show # You may change/remove this line
+    end
   end
   
   get '/win' do
     ### YOUR CODE HERE ###
-    erb :win # You may change/remove this line
+    if @game.check_win_or_lose == :win
+      erb :win 
+    else
+      redirect '/show'
+    end
   end
   
   get '/lose' do
     ### YOUR CODE HERE ###
-    erb :lose # You may change/remove this line
+    if @game.check_win_or_lose == :lose
+      erb :lose # You may change/remove this line
+    else
+      redirect '/show'
+    end
   end
   
 

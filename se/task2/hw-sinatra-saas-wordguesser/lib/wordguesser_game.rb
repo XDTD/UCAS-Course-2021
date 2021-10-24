@@ -61,9 +61,11 @@ class WordGuesserGame
   def guess(word)
     # 局部变量，这次猜的返回值
     valid = false
+    @count += 1  # 每错一次加一
     # 空就报错
     if word == '' or word == nil 
       raise ArgumentError
+      # return valid
     end
 
     # 转小写
@@ -86,7 +88,7 @@ class WordGuesserGame
       end
 
     elsif  !@word.include? word
-      @count += 1  # 每错一次加一
+      
       if !@wrong_guess_list.include? word
         @wrong_guess_list = @wrong_guess_list + word
         valid = true  # 不懂为什么这里是true
