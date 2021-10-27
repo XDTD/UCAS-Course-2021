@@ -182,12 +182,14 @@ static void hd_out(unsigned int drive,unsigned int nsect,unsigned int sect,
 		void (*intr_addr)(void))
 {
 	register int port asm("dx");
-
+	//磁头超标之类的
 	if (drive>1 || head>15)
 		panic("Trying to write bad sector");
 	if (!controller_ready())
 		panic("HD controller not ready");
-	do_hd = intr_addr;
+	// 和硬盘中断服务程序挂钩
+	do_hd = intr_addr;  // 挂载的是`read_interupt`
+	
 	outb_p(hd_info[drive].ctl,HD_CMD);
 	port=HD_DATA;
 	outb_p(hd_info[drive].wpcom>>2,++port);
@@ -298,12 +300,12 @@ void do_hd_request(void)
 	unsigned int sec,head,cyl;
 	unsigned int nsect;
 
-	INIT_REQUEST;
+	INIT_REQUEST;  // 
 	dev = MINOR(CURRENT->dev);
 	block = CURRENT->sector;
 	if (dev >= 5*NR_HD || block+2 > hd[dev].nr_sects) {
 		end_request(0);
-		goto repeat;
+		goto repeat; //这个repeat在INIT_REQUEST这个宏里边
 	}
 	block += hd[dev].start_sect;
 	dev /= 5;
@@ -325,6 +327,7 @@ void do_hd_request(void)
 			WIN_RESTORE,&recal_intr);
 		return;
 	}	
+	// 读和写
 	if (CURRENT->cmd == WRITE) {
 		hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);
 		for(i=0 ; i<3000 && !(r=inb_p(HD_STATUS)&DRQ_STAT) ; i++)

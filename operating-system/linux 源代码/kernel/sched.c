@@ -126,8 +126,8 @@ void schedule(void)
 /* this is the scheduler proper: */
 
 	while (1) {
-		c = -1;
-		next = 0;  // 切换的进程
+		c = -1;  // 初始化为-1的意义
+		next = 0;  // 切换的进程，两个进程都挂了最后跳出也是0
 		i = NR_TASKS;
 		p = &task[NR_TASKS]; // 里边都是指向进程task_struct的指针
 		while (--i) {
@@ -164,7 +164,7 @@ void sleep_on(struct task_struct **p)
 		panic("task[0] trying to sleep");
 	tmp = *p;
 	*p = current;
-	current->state = TASK_UNINTERRUPTIBLE;
+	current->state = TASK_UNINTERRUPTIBLE;  //到此为止两个进程都挂了
 	schedule();
 	if (tmp)
 		tmp->state=0;
