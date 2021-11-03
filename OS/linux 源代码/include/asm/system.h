@@ -1,5 +1,5 @@
 #define move_to_user_mode() \
-__asm__ ("movl %%esp,%%eax\n\t" \
+__asm__ ("movl %%esp,%%eax\n\t" \ //esp寄存器存放当前线程的栈顶指针，eax 32位寄存器
 	"pushl $0x17\n\t" \ //10111, 10是ldt数据段
 	"pushl %%eax\n\t" \
 	"pushfl\n\t" \

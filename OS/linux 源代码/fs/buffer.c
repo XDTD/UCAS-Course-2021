@@ -280,7 +280,7 @@ struct buffer_head * bread(int dev,int block)
 	// 造出了一个新的引导块，现在需要读写引导块
 	ll_rw_block(READ,bh); // "ll"是底层读写？
 	wait_on_buffer(bh);
-	if (bh->b_uptodate)
+	if (bh->b_uptodate)  // 硬盘中断完回来就返回了
 		return bh;
 	brelse(bh);
 	return NULL;
