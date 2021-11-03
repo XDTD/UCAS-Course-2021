@@ -367,7 +367,7 @@ void buffer_init(long buffer_end)
 		h->b_count = 0;
 		h->b_lock = 0;
 		h->b_uptodate = 0;
-		h->b_wait = NULL;
+		h->b_wait = NULL;  // 
 		h->b_next = NULL;
 		h->b_prev = NULL;
 		h->b_data = (char *) b;

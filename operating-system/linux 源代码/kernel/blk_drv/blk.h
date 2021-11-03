@@ -104,16 +104,16 @@ extern inline void unlock_buffer(struct buffer_head * bh)
 {
 	if (!bh->b_lock)
 		printk(DEVICE_NAME ": free buffer being unlocked\n");
-	bh->b_lock=0;
-	wake_up(&bh->b_wait);
+	bh->b_lock=0;  
+	wake_up(&bh->b_wait);  // 唤醒在等待的进程b_wait，从后往回唤醒
 }
 
-extern inline void end_request(int uptodate)
+extern inline void end_request(int uptodate)  //uptodate 1
 {
-	DEVICE_OFF(CURRENT->dev);
+	DEVICE_OFF(CURRENT->dev); 
 	if (CURRENT->bh) {
-		CURRENT->bh->b_uptodate = uptodate;
-		unlock_buffer(CURRENT->bh);
+		CURRENT->bh->b_uptodate = uptodate;  // 用传进来的1顶掉
+		unlock_buffer(CURRENT->bh);   // 解锁
 	}
 	if (!uptodate) {
 		printk(DEVICE_NAME " I/O error\n\r");

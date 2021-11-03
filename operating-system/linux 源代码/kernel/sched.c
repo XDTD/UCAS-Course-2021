@@ -162,8 +162,9 @@ void sleep_on(struct task_struct **p)
 		return;
 	if (current == &(init_task.task))
 		panic("task[0] trying to sleep");
-	tmp = *p;
-	*p = current;
+	//从wait_on_buffer进来，实际上*p相当于b_wait
+	tmp = *p;    //`buffer_init`中初始化`h->b_wait = NULL`;后面再也没改过，因此b_wait仍然为空
+	*p = current;  // 当前进程是1，执行完这一行后*p执行进程1
 	current->state = TASK_UNINTERRUPTIBLE;  //到此为止两个进程都挂了
 	schedule();
 	if (tmp)
@@ -194,8 +195,8 @@ repeat:	current->state = TASK_INTERRUPTIBLE;
 void wake_up(struct task_struct **p)
 {
 	if (p && *p) {
-		(**p).state=0;
-		*p=NULL;
+		(**p).state=0;  // state = 0就是task_running
+		*p=NULL;   // b_wait置空
 	}
 }
 

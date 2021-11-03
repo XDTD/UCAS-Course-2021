@@ -78,7 +78,7 @@ static void add_request(struct blk_dev_struct * dev, struct request * req)
 		return;
 	}
 	// 之前有人弄过，就走下面一段
-	// 电梯算法,尽量固定磁头
+	// 电梯算法,尽量固定磁头,减少磁头的摆动，插入合适的地方
 	for ( ; tmp->next ; tmp=tmp->next)
 		if ((IN_ORDER(tmp,req) ||
 		    !IN_ORDER(tmp,tmp->next)) &&

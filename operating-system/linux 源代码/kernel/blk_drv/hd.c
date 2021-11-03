@@ -188,7 +188,7 @@ static void hd_out(unsigned int drive,unsigned int nsect,unsigned int sect,
 	if (!controller_ready())
 		panic("HD controller not ready");
 	// 和硬盘中断服务程序挂钩
-	do_hd = intr_addr;  // 挂载的是`read_interupt`
+	do_hd = intr_addr;  // 从do_hd_request挂载的是`read_interupt`
 	
 	outb_p(hd_info[drive].ctl,HD_CMD);
 	port=HD_DATA;
@@ -258,14 +258,14 @@ static void read_intr(void)
 	}
 	port_read(HD_DATA,CURRENT->buffer,256);
 	CURRENT->errors = 0;
-	CURRENT->buffer += 512;
-	CURRENT->sector++;
-	if (--CURRENT->nr_sectors) {
-		do_hd = &read_intr;
+	CURRENT->buffer += 512;  //读一次512
+	CURRENT->sector++;   //为什么++，一次一个扇区
+	if (--CURRENT->nr_sectors) { //第二次再来就变成0了，读两个结束
+		do_hd = &read_intr;   //hd_out出现一次，接着走循环
 		return;
 	}
-	end_request(1);
-	do_hd_request();
+	end_request(1);  //1是有讲究的
+	do_hd_request();  //又来
 }
 
 static void write_intr(void)

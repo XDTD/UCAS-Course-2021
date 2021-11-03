@@ -237,7 +237,7 @@ _hd_interrupt:
 	jmp 1f			# give port chance to breathe
 1:	jmp 1f
 1:	xorl %edx,%edx
-	xchgl _do_hd,%edx
+	xchgl _do_hd,%edx   //调用的是read_interupt
 	testl %edx,%edx
 	jne 1f
 	movl $_unexpected_hd_interrupt,%edx
