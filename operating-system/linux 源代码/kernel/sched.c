@@ -126,8 +126,8 @@ void schedule(void)
 /* this is the scheduler proper: */
 
 	while (1) {
-		c = -1;
-		next = 0;  // 切换的进程
+		c = -1;  // 初始化为-1的意义
+		next = 0;  // 切换的进程，两个进程都挂了最后跳出也是0
 		i = NR_TASKS;
 		p = &task[NR_TASKS]; // 里边都是指向进程task_struct的指针
 		while (--i) {
@@ -162,12 +162,19 @@ void sleep_on(struct task_struct **p)
 		return;
 	if (current == &(init_task.task))
 		panic("task[0] trying to sleep");
+<<<<<<< HEAD:OS/linux 源代码/kernel/sched.c
 	// *p指向缓冲块b_wait
 	// p指向等待缓冲块的进程
 	tmp = *p;  // b_wait指向上一个调用sleep_on的进程，这里把tmp指向那个进程
 	*p = current;  // 改变p指向等待缓冲块的进程，把b_wait改了 
-	current->state = TASK_UNINTERRUPTIBLE;
+	current->state = TASK_UNINTERRUPTIBLE;  //到此为止两个进程都挂了
 	schedule(); // 当初创建队列，从这走，后来就从这回来
+=======
+	tmp = *p;
+	*p = current;
+	current->state = TASK_UNINTERRUPTIBLE; 
+	schedule();
+>>>>>>> 2f0dd41375003993fdb0b883da26f39236bb9d0f:operating-system/linux 源代码/kernel/sched.c
 	if (tmp)
 		tmp->state=0;
 }

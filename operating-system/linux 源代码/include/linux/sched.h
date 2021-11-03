@@ -173,14 +173,14 @@ __asm__("str %%ax\n\t" \
  */
 #define switch_to(n) {\
 struct {long a,b;} __tmp; \
-__asm__("cmpl %%ecx,_current\n\t" \
+__asm__("cmpl %%ecx,_current\n\t" \  //ecx：要去的地方
 	"je 1f\n\t" \
 	"movw %%dx,%1\n\t" \
 	"xchgl %%ecx,_current\n\t" \  // 如果两个一样直接不走了
 	"ljmp %0\n\t" \
 	// 后续没执行，所以还没返回
 	"cmpl %%ecx,_last_task_used_math\n\t" \
-	"jne 1f\n\t" \
+	"jne 1f\n\t" \  //如果要去的地方和当前进程一样就跳到这，不发生切换
 	"clts\n" \
 	"1:" \
 	::"m" (*&__tmp.a),"m" (*&__tmp.b), \
