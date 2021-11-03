@@ -162,12 +162,16 @@ void sleep_on(struct task_struct **p)
 		return;
 	if (current == &(init_task.task))
 		panic("task[0] trying to sleep");
+	// *p指向缓冲块b_wait
+	// p指向等待缓冲块的进程
 	//从wait_on_buffer进来，实际上*p相当于b_wait
+	// b_wait指向上一个调用sleep_on的进程，这里把tmp指向那个进程
 	tmp = *p;    //`buffer_init`中初始化`h->b_wait = NULL`;后面再也没改过，因此b_wait仍然为空
+	// 改变p指向等待缓冲块的进程，把b_wait改了 
 	*p = current;  // 当前进程是1，执行完这一行后*p执行进程1
 	current->state = TASK_UNINTERRUPTIBLE;  //到此为止两个进程都挂了
-	schedule();
-	if (tmp)
+	schedule(); // 当初创建队列，从这走，后来就从这回来
+	if (tmp)  // 从后往前唤醒
 		tmp->state=0;
 }
 
@@ -196,7 +200,7 @@ void wake_up(struct task_struct **p)
 {
 	if (p && *p) {
 		(**p).state=0;  // state = 0就是task_running
-		*p=NULL;   // b_wait置空
+		*p=NULL;   // b_wait置空，//把链断掉
 	}
 }
 
